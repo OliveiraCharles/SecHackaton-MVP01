@@ -1,0 +1,32 @@
+version: "3.8"
+
+networks:
+  hcktn_network:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: hcktn_PostgreSQL
+    environment:
+      POSTGRES_USER: postgres # Nome de usuário
+      POSTGRES_PASSWORD: "postgres" # Senha
+    ports:
+      - "5432:5432" # Mapeia a porta do host para a porta do contêiner
+    volumes:
+      - ./db/data:/var/lib/postgresql/data # Volume para persistência dos dados
+    networks:
+      - hcktn_network # Nome da rede para conexões
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hcktn_Grafana
+    ports:
+      - "3000:3000" # Mapeia a porta do host para a porta do contêiner Grafana
+    networks:
+      - hcktn_network # Nome da rede para conexões
+    depends_on:
+      - postgres # Certifica-se de que o contêiner PostgreSQL esteja em execução
+    volumes:
+      - ./dashboard/data:/var/lib/grafana # Volume para persistência das configurações

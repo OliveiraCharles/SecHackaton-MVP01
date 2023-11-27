@@ -1,4 +1,4 @@
-# MVP 01
+# Security Hackathon [MVP]
 
 ## Pre-requisites
 
@@ -8,14 +8,11 @@
 
 ## Running Application
 
-### 1. Infra
+Running in Win11 with WSL 2
 
-```sh
-# Up containers
-docker-compose up -d
-```
+### 1. Clone this Project
 
-### 2. Python Environment
+### 2. Prepare Python Environment
 
 ```sh
 ## Create an virtual environment
@@ -42,11 +39,33 @@ pip install -r requirements.txt
 # pip install isort blue pytest bandit
 ```
 
-### 3. Application
+### 3. Run Application
 
 ```sh
-# Run application
-python src/main.py
+source run.sh
 ```
+
+## Process
+
+![process](img/report_cicle.excalidraw.svg)
+
+## History Telling
+
+1. Toda `aplicação` durante o processo de desenvolvimento passa por
+2. `ferramentas de segurança` que geram reports de segurança.
+3. Assim que gerados, esses `arquivos de report` serão salvos no
+4. `diretório` especificado e, em seguida,
+5. `escaneados` pela
+6. `nossa aplicação` e, na sequencia,
+7. `salvos` no
+8. `banco de dados`. Periodicamente, esses reports serão
+9. `verificados` para checar a existência de novos findings.
+10. Para cada novo finding, a `nossa aplicação` irá
+11. `criar um ticket`
+12. no `gerenciador de projetos` (Jira).
+13. Todos os tickets serão `escaneados` periodicamente e,
+14. assim que encerrados, `nossa aplicação`
+15. `atualizará` o status do finding no
+16. `banco de dados`.
 
 ## References

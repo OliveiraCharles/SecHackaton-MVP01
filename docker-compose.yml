@@ -9,24 +9,38 @@ services:
     image: postgres:latest
     container_name: hcktn_PostgreSQL
     environment:
-      POSTGRES_USER: postgres # Nome de usuário
-      POSTGRES_PASSWORD: "postgres" # Senha
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "postgres"
     ports:
-      - "5432:5432" # Mapeia a porta do host para a porta do contêiner
+      - "5432:5432"
     volumes:
-      - ./db/data:/var/lib/postgresql/data # Volume para persistência dos dados
+      - ./db/data:/var/lib/postgresql/data
     networks:
-      - hcktn_network # Nome da rede para conexões
+      - hcktn_network
     restart: unless-stopped
 
   grafana:
     image: grafana/grafana:latest
     container_name: hcktn_Grafana
     ports:
-      - "3000:3000" # Mapeia a porta do host para a porta do contêiner Grafana
+      - "3000:3000"
     networks:
-      - hcktn_network # Nome da rede para conexões
+      - hcktn_network
     depends_on:
-      - postgres # Certifica-se de que o contêiner PostgreSQL esteja em execução
+      - postgres
     volumes:
-      - ./dashboard/data:/var/lib/grafana # Volume para persistência das configurações
+      - ./dashboard/data:/var/lib/grafana
+    restart: unless-stopped
+
+  jira:
+    image: atlassian/jira-software
+    container_name: hcktn_Jira
+    ports:
+      - "8080:8080"
+    networks:
+      - hcktn_network
+    depends_on:
+      - postgres
+    volumes:
+      - ./jira/data:/var/atlassian/application-data/jira
+    restart: unless-stopped

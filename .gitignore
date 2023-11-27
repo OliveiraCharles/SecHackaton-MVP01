@@ -1,9 +1,12 @@
-db/
-logs/
 dashboard/
+db/
+jira/
+logs/
 reports/
-tests/
 staff/
+tests/
+sql/
+
 __pycache__/
 
 .env
@@ -201,12 +204,12 @@ pyvenv.cfg
 pip-selfcheck.json
 
 ### VisualStudioCode ###
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+.vscode/
+# !.vscode/settings.json
+# !.vscode/tasks.json
+# !.vscode/launch.json
+# !.vscode/extensions.json
+# !.vscode/*.code-snippets
 
 # Local History for Visual Studio Code
 .history/

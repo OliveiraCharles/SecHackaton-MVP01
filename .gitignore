@@ -1,12 +1,13 @@
-db/
-logs/
 dashboard/
-reports/
+db/
 jira/
+logs/
+reports/
 tickets/
-tests/
 staff/
+tests/
 sql/
+
 __pycache__/
 
 .env

@@ -3,6 +3,7 @@ db/
 jira/
 logs/
 reports/
+tickets/
 staff/
 tests/
 sql/

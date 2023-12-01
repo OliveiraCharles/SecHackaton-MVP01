@@ -1,48 +1,23 @@
-import config.settings as st
-import libs.database as db
-import libs.dataset as dt
-import libs.ticket as tk
+import libs.features as ft
 
 if __name__ == '__main__':
 
-    # Baixa tabela
-    db.query(
-        db_conn_str=st.db_conn_str,
-        query_sql="""
-        SELECT *
-        FROM reports
-        """,
-        output_file_path='reports/_db_import.csv',
+    data = ft.scan_reports(
+        directory='reports'
     )
 
-    # Mescla os reports
-    df = dt.merge(
-        directory='reports', output_file_path='reports/output/merged.csv'
-    )
+    for index, row in data.iterrows():
+        if ft.check_report(row=row):
+            issue_key = ft.create_ticket(row=row, project_key='RA')
 
-    # Remove duplicatas
-    df = dt.deduplicate(
-        df=df,
-        columns_to_check=['SrcFileName', 'Name', 'Query'],
-        output_file_path='reports/output/deduplicated.csv',
-    )
+            # Agora, atualize a coluna 'JiraTicketKey' no DataFrame
+            data.at[index, 'JiraTicketKey'] = issue_key
 
-    # Salva novos findings no banco de dados
-    db.save(df=df, table_name='reports', db_conn_str=st.db_conn_str)
+            ft.save_report(
+                table_name='reports',
+                row=row
+            )
 
-    # Prepara tabela de findings a serem avaliados
-    df = db.query(
-        db_conn_str=st.db_conn_str,
-        query_sql="""
-        SELECT *
-        FROM reports
-        WHERE "Evaluation" IS NULL
-        AND "JiraTicketKey" IS NULL
-        limit 5
-        """,
-        output_file_path='reports/output/sql_import.csv',
-    )
+    ft.scan_ticket()
 
-    jira = tk.connect(server=st.jira_url, auth=st.jira_auth)
-
-    tk.create(df=df, jira=jira, project_key='RA')
+    # ft.update_report()

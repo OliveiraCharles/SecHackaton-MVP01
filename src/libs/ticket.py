@@ -50,7 +50,7 @@ def create(row, project_key):
     )
 
     logging.info(f'Criação do ticket concluída: {issue.key}')
-    return str(issue.key)
+    return issue
 
 
 def query(project_key, colunas):
@@ -102,7 +102,7 @@ def import_jira_data(project_key, output_file_path=None):
             'Duedate': issue.fields.duedate,
             'Resolutiondate': issue.fields.resolutiondate,
             'Status': issue.fields.status.name,
-            'Evaluation': str(
+            'Issue Evaluation': str(
                 getattr(issue.fields, 'customfield_10200', 'Not Evaluated')
             ),
         }

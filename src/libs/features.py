@@ -16,14 +16,14 @@ def scan_reports(directory):
 
 def check_report(row, table_name='reports'):
     # if is duplicated or is information, not need to save
-    result = not (is_duplicated(row, table_name) or is_information(row))
+    result = not (is_duplicated(row, table_name))  # or is_information(row))
     # print("Needs to save?", result)
     return result
 
 
 def create_ticket(row, project_key):
-    issue_key = tk.create(row=row, project_key=project_key)
-    return issue_key
+    issue = tk.create(row=row, project_key=project_key)
+    return issue
 
 
 def save_report(row, table_name):
@@ -80,7 +80,7 @@ def save_new_report(new_report, table_name='reports'):
         if df.empty:
             issue_key = tk.create(row=row, project_key='RA')
 
-            # Agora, atualize a coluna 'JiraTicketKey' no DataFrame
-            new_report.at[index, 'JiraTicketKey'] = issue_key
+            # Agora, atualize a coluna 'Issue Key' no DataFrame
+            new_report.at[index, 'Issue Key'] = issue_key
 
             db.insert_finding(table_name=table_name, row=row)

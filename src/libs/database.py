@@ -65,8 +65,8 @@ def save_to_database(row, table_name):
             query = sql.text(
                 f"""
                 UPDATE {table_name}
-                SET "Evaluation" = '{row['Evaluation']}'
-                WHERE "JiraTicketKey"='{row['Key']}'
+                SET "Issue Evaluation" = '{row['Issue Evaluation']}'
+                WHERE "Issue Key"='{row['Key']}'
                 """
             )
             conn.execute(query)
@@ -85,9 +85,9 @@ def execute_sql_query(query_sql, output_file_path=None):
             df = pd.read_sql(query, conn)
         if output_file_path:
             df.to_csv(output_file_path, index=False)
-        logging.info('Comando SQL Finalizado.')
+        # logging.info('Comando SQL Finalizado.')
     except Exception as e:
-        logging.error('Erro:\n' + str(e))
+        logging.error('Erro ao efetuar query SQL:\n' + str(e))
 
     return df
 
@@ -98,7 +98,7 @@ def add_issue_key(issue_key, row):
     query = sql.text(
         """
         UPDATE reports
-        SET "JiraTicketKey" = :issue_key
+        SET "Issue Key" = :issue_key
         WHERE reports."Query" = :query
         AND reports."SrcFileName" = :src_file_name
         AND reports."Name" = :name
@@ -124,13 +124,13 @@ def add_issue_key(issue_key, row):
 
 
 def update_report_evaluation(row):
-    logging.info('Atualizando Evaluation...')
+    logging.info('Atualizando Issue Evaluation...')
 
     query = sql.text(
         """
         UPDATE reports
-        SET "Evaluation" = :evaluation
-        WHERE reports."JiraTicketKey" = :key
+        SET "Issue Evaluation" = :evaluation
+        WHERE reports."Issue Key" = :key
         """
     )
     try:
@@ -138,7 +138,7 @@ def update_report_evaluation(row):
             result = conn.execute(
                 query,
                 {
-                    'evaluation': row['Evaluation'],
+                    'evaluation': row['Issue Evaluation'],
                     'key': row['Key'],
                 },
             )
@@ -172,8 +172,6 @@ def delete_record(query, src_file_name, name):
 
 
 def insert_finding(table_name, row):
-    # Testado
-
     try:
         with engine.connect() as conn:
             statement = sql.text(
@@ -188,9 +186,12 @@ def insert_finding(table_name, row):
                     "SrcFileName", "Line", "Column", "NodeId", "Name",
                     "DestFileName", "DestLine", "DestColumn", "DestNodeId",
                     "DestName", "Result State", "Result Severity",
-                    "JiraTicketKey", "Assigned To", "Comment", "Link",
-                    "Result Status", "Detection Date", "Evaluation",
-                    "Dev Team Review Note", "Labels"
+                    "Issue Key", "Assigned To", "Comment", "Link",
+                    "Result Status", "Detection Date", "Issue Evaluation",
+                    "Dev Team Review Note",
+                    "Issue Status", "Issue Created", "Issue Updated",
+                    "Issue Summary", "Issue Priority", "Issue Review Note",
+                    "Issue Resolved", "Issue Due Date", "Issue Assignee"
                 )
                 VALUES (
                     :query, :query_path, :custom, :pci_dss, :owasp_2013,
@@ -201,7 +202,10 @@ def insert_finding(table_name, row):
                     :dest_column, :dest_node_id, :dest_name, :result_state,
                     :result_severity, :jira_ticket_key, :assigned_to, :comment,
                     :link, :result_status, :detection_date, :evaluation,
-                    :dev_team_review_note, :labels
+                    :dev_team_review_note,
+                    :issue_status, :issue_created, :issue_updated,
+                    :issue_summary, :issue_priority, :issue_review_note,
+                    :issue_resolved, :issue_due_date, :issue_assignee
                 )
             """
             )
@@ -236,19 +240,109 @@ def insert_finding(table_name, row):
                 'dest_name': row['DestName'],
                 'result_state': row['Result State'],
                 'result_severity': row['Result Severity'],
-                'jira_ticket_key': row['JiraTicketKey'],
+                'jira_ticket_key': row['Issue Key'],
                 'assigned_to': row['Assigned To'],
                 'comment': row['Comment'],
                 'link': row['Link'],
                 'result_status': row['Result Status'],
                 'detection_date': row['Detection Date'],
-                'evaluation': row['Evaluation'],
+                'evaluation': row['Issue Evaluation'],
                 'dev_team_review_note': row['Dev Team Review Note'],
-                'labels': row['Labels'],
+                'issue_status': row.get('Issue Status', None),
+                'issue_created': row.get('Issue Created', None),
+                'issue_updated': row.get('Issue Updated', None),
+                'issue_summary': row.get('Issue Summary', None),
+                'issue_priority': row.get('Issue Priority', None),
+                'issue_review_note': row.get('Issue Review Note', None),
+                'issue_resolved': row.get('Issue Resolved', None),
+                'issue_due_date': row.get('Issue Due Date', None),
+                'issue_assignee': row.get('Issue Assignee', None),
             }
 
             conn.execute(statement, parameters)
             conn.commit()
-        logging.info('Comando SQL Finalizado.')
+
     except Exception as e:
-        logging.error('Erro:\n' + str(e))
+        logging.error('Erro ao inserir finding:\n{}'.format(str(e)))
+
+
+def insert_finding_bkp(table_name, row):
+    # Testado
+
+    try:
+        with engine.connect() as conn:
+            statement = sql.text(
+                f"""
+                INSERT INTO {table_name} (
+                    "Query", "QueryPath", "Custom", "PCI DSS v3.2.1",
+                    "OWASP Top 10 2013", "FISMA 2014", "NIST SP 800-53",
+                    "OWASP Top 10 2017", "OWASP Mobile Top 10 2016",
+                    "ASD STIG 4.10", "OWASP Top 10 API", "OWASP Top 10 2010",
+                    "CWE top 25", "MOIS(KISA) Secure Coding 2021",
+                    "OWASP ASVS", "OWASP Top 10 2021", "SANS top 25",
+                    "SrcFileName", "Line", "Column", "NodeId", "Name",
+                    "DestFileName", "DestLine", "DestColumn", "DestNodeId",
+                    "DestName", "Result State", "Result Severity",
+                    "Issue Key", "Assigned To", "Comment", "Link",
+                    "Result Status", "Detection Date", "Issue Evaluation",
+                    "Dev Team Review Note"
+                )
+                VALUES (
+                    :query, :query_path, :custom, :pci_dss, :owasp_2013,
+                    :fisma, :nist, :owasp_2017, :owasp_mobile_2016, :asd_stig,
+                    :owasp_api, :owasp_2010, :cwe_top_25, :mois, :owasp_asvs,
+                    :owasp_2021, :sans_top_25, :src_file_name, :line, :column,
+                    :node_id, :name, :dest_file_name, :dest_line,
+                    :dest_column, :dest_node_id, :dest_name, :result_state,
+                    :result_severity, :jira_ticket_key, :assigned_to, :comment,
+                    :link, :result_status, :detection_date, :evaluation,
+                    :dev_team_review_note
+                )
+            """
+            )
+
+            parameters = {
+                'query': row['Query'],
+                'query_path': row['QueryPath'],
+                'custom': row['Custom'],
+                'pci_dss': row['PCI DSS v3.2.1'],
+                'owasp_2013': row['OWASP Top 10 2013'],
+                'fisma': row['FISMA 2014'],
+                'nist': row['NIST SP 800-53'],
+                'owasp_2017': row['OWASP Top 10 2017'],
+                'owasp_mobile_2016': row['OWASP Mobile Top 10 2016'],
+                'asd_stig': row['ASD STIG 4.10'],
+                'owasp_api': row['OWASP Top 10 API'],
+                'owasp_2010': row['OWASP Top 10 2010'],
+                'cwe_top_25': row['CWE top 25'],
+                'mois': row['MOIS(KISA) Secure Coding 2021'],
+                'owasp_asvs': row['OWASP ASVS'],
+                'owasp_2021': row['OWASP Top 10 2021'],
+                'sans_top_25': row['SANS top 25'],
+                'src_file_name': row['SrcFileName'],
+                'line': row['Line'],
+                'column': row['Column'],
+                'node_id': row['NodeId'],
+                'name': row['Name'],
+                'dest_file_name': row['DestFileName'],
+                'dest_line': row['DestLine'],
+                'dest_column': row['DestColumn'],
+                'dest_node_id': row['DestNodeId'],
+                'dest_name': row['DestName'],
+                'result_state': row['Result State'],
+                'result_severity': row['Result Severity'],
+                'jira_ticket_key': row['Issue Key'],
+                'assigned_to': row['Assigned To'],
+                'comment': row['Comment'],
+                'link': row['Link'],
+                'result_status': row['Result Status'],
+                'detection_date': row['Detection Date'],
+                'evaluation': row['Issue Evaluation'],
+                'dev_team_review_note': row['Dev Team Review Note'],
+            }
+
+            conn.execute(statement, parameters)
+            conn.commit()
+        # logging.info('Comando SQL Finalizado.')
+    except Exception as e:
+        logging.error('Erro ao inserir finding:\n' + str(e))

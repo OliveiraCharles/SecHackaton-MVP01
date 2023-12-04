@@ -21,6 +21,8 @@ def merge(directory, column_names, output_file_path=None):
 
     # Concatena os DataFrames
     df = pd.concat(dfs, ignore_index=True)
+    if 'Evaluation' in df.columns and not df['Evaluation'].empty:
+        df['Issue Evaluation'] = df['Evaluation']
     df = df.reindex(columns=column_names, fill_value=None)
 
     if output_file_path:
@@ -41,8 +43,8 @@ def deduplicate(
         # Lê o arquivo CSV
         df = pd.read_csv(input_file_path)
 
-    # Ordena o DataFrame pela coluna 'Evaluation'
-    df = df.sort_values(by='Evaluation')
+    # Ordena o DataFrame pela coluna 'Issue Evaluation'
+    df = df.sort_values(by='Issue Evaluation')
 
     # Remove as linhas duplicadas com base nas colunas especificadas
     df = df.drop_duplicates(subset=columns_to_check, keep=False)

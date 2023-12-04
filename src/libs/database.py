@@ -125,28 +125,25 @@ def add_issue_key(issue_key, row):
 
 def update_report_evaluation(row):
     logging.info('Atualizando Issue Evaluation...')
-
-    query = sql.text(
-        """
+    with engine.connect() as conn:
+        query = sql.text(
+            """
         UPDATE reports
         SET "Issue Evaluation" = :evaluation
         WHERE reports."Issue Key" = :key
         """
-    )
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(
-                query,
-                {
-                    'evaluation': row['Issue Evaluation'],
-                    'key': row['Key'],
-                },
-            )
+        )
+        parameters = {
+            'evaluation': row['Evaluation'],
+            'key': row['Issue Key'],
+        }
+        try:
+            result = conn.execute(query, parameters)
             conn.commit()
             return result
 
-    except Exception as e:
-        logging.error('Erro ao executar comando SQL\n' + str(e))
+        except Exception as e:
+            logging.error('Erro ao executar comando SQL\n' + str(e))
 
 
 def delete_record(query, src_file_name, name):

@@ -51,17 +51,15 @@ def is_duplicated(row, table_name):
 
 
 def scan_ticket():
-    # Verifica tickets resolvidos
-    df = db.execute_sql_query(
-        query_sql="""
-        SELECT * FROM tickets
-        WHERE "Status" = 'Done'
-        """
+    df = tk.jql_query(
+        # colunas=['Status', 'Evaluation', 'Key'],
+        project_key='RA'
     )
+    print(df)
     for index, row in df.iterrows():
         db.update_report_evaluation(row=row)
 
-    return True
+    return df
 
 
 def save_new_report(new_report, table_name='reports'):

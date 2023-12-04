@@ -12,12 +12,11 @@ if __name__ == '__main__':
         'Issue Assignee', 'Issue Created',
         'Issue Updated', 'Issue Resolved'
     ]
+    data[string_columns] = data[string_columns].astype(str)
 
     for index, row in data.iterrows():
         if ft.check_report(row=row):
             issue = ft.create_ticket(row=row, project_key='RA')
-
-            data[string_columns] = data[string_columns].astype(str)
 
             row["Issue Key"] = str(issue.key)
             row["Issue Status"] = issue.fields.status.name
@@ -42,6 +41,6 @@ if __name__ == '__main__':
                 row=row
             )
 
-    # ft.scan_ticket()
+    tickets = ft.scan_ticket()
 
     # ft.update_report()

@@ -53,12 +53,62 @@ def create(row, project_key):
     return issue
 
 
-def query(project_key, colunas):
+def jql_query(project_key):
+    jql_str = f"project={project_key} AND Status = 'Done'"
+    try:
+        issues = jira.search_issues(
+            jql_str,
+            startAt=0,
+            maxResults=1000
+        )
+
+        # Lista para armazenar os dados dos problemas
+        issues_data = []
+
+        # Verifica se há pelo menos um problema
+        if issues:
+            for issue in issues:
+                issue_data = {'Issue Key': issue.key}
+
+                custom_field = getattr(issue.fields, "customfield_10200", None)
+                issue_data['Evaluation'] = (
+                    custom_field.value if custom_field else None
+                )
+                issue_data['Status'] = issue.fields.status.name
+                issue_data['Created'] = issue.fields.created
+                issue_data['Updated'] = issue.fields.updated
+
+                issues_data.append(issue_data)
+
+            # Cria um DataFrame pandas a partir da lista de dicionários
+            df = pd.DataFrame(issues_data)
+
+            return df
+
+    except Exception as e:
+        print(f"Erro ao executar a consulta JQL: {str(e)}")
+        return pd.DataFrame()
+
+
+def jql_query2(project_key, colunas):
 
     # Obtenha os issues do projeto
     issues = jira.search_issues(
-        f'project={project_key}', startAt=0, maxResults=1000
+        f"project={project_key} AND Status = 'Done'",
+        startAt=0,
+        maxResults=1000
     )
+
+    # Verifica se há pelo menos um problema
+    if issues:
+        first_issue = issues[0].raw['fields']['status']['name']
+
+        print(first_issue)
+
+        # # Obtém e imprime todas as informações do primeiro problema
+        # for field_name in first_issue.raw['fields']:
+        #     field_value = first_issue.raw['fields'][field_name]
+        #     print(f"{field_name}: {field_value}")
 
     # Crie uma lista para armazenar os dados
     dados = []

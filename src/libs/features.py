@@ -2,6 +2,7 @@ import logging
 import libs.database as db
 import libs.report as dt
 import libs.ticket as tk
+import config.settings as st
 
 
 def scan_reports(directory):
@@ -51,15 +52,20 @@ def is_duplicated(row, table_name):
 
 
 def scan_ticket():
-    df = tk.jql_query(
-        # colunas=['Status', 'Evaluation', 'Key'],
-        project_key='RA'
-    )
-    print(df)
-    for index, row in df.iterrows():
-        db.update_report_evaluation(row=row)
+    try:
+        df = tk.jql_query(
+            # colunas=['Status', 'Evaluation', 'Key'],
+            project_key=st.jira_project
+        )
+        if not df.empty:
+            for index, row in df.iterrows():
+                db.update_report_evaluation(row=row)
+        else:
+            print("O DataFrame está vazio. Nenhuma ação necessária.")
 
-    return df
+        return df
+    except Exception as e:
+        print(f"Erro ao escanear tickets: {str(e)}")
 
 
 def save_new_report(new_report, table_name='reports'):
@@ -76,7 +82,7 @@ def save_new_report(new_report, table_name='reports'):
         )
 
         if df.empty:
-            issue_key = tk.create(row=row, project_key='RA')
+            issue_key = tk.create(row=row, project_key=st.jira_project)
 
             # Agora, atualize a coluna 'Issue Key' no DataFrame
             new_report.at[index, 'Issue Key'] = issue_key

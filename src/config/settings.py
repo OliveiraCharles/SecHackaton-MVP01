@@ -19,7 +19,8 @@ db_conn_str = environ.get('db_conn_str')
 
 
 # Jira
-jira_project = 'RA'
+# jira_project = 'RA'
+jira_project = 'TM'
 jira_url = environ.get('jira_url')
 jira_user = environ.get('jira_user')
 jira_password = environ.get('jira_password')

@@ -1,5 +1,5 @@
 import libs.features as ft
-
+import config.settings as st
 if __name__ == '__main__':
 
     data = ft.scan_reports(
@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     for index, row in data.iterrows():
         if ft.check_report(row=row):
-            issue = ft.create_ticket(row=row, project_key='RA')
+            issue = ft.create_ticket(row=row, project_key=st.jira_project)
 
             row["Issue Key"] = str(issue.key)
             row["Issue Status"] = issue.fields.status.name

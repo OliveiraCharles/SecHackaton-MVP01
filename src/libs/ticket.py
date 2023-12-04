@@ -44,9 +44,10 @@ def create(row, project_key):
         project=project_key,
         summary=summary,
         description=description,
-        # Pode ser 'Task', 'Story', ou outro tipo de issue
         issuetype={'name': 'Task'},
         priority={'name': priority},
+        customfield_10200={'value': 'Not Evaluated'},
+        customfield_10201='Not Evaluated'
     )
 
     logging.info(f'Criação do ticket concluída: {issue.key}')

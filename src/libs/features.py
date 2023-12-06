@@ -1,30 +1,65 @@
 import logging
+
+import config.settings as st
 import libs.database as db
 import libs.report as dt
 import libs.ticket as tk
-import config.settings as st
 
 
 def scan_reports(directory):
     logging.info('Scanning reports...')
-    new_report = dt.merge(
+    df = dt.merge(
         directory=directory,
         output_file_path='reports/output/merged.csv',
         column_names=db.get_column_names('reports'),
     )
-    return new_report
+    return df
 
 
 def check_report(row, table_name='reports'):
     # if is duplicated or is information, not need to save
     result = not (is_duplicated(row, table_name))  # or is_information(row))
-    # print("Needs to save?", result)
     return result
 
 
-def create_ticket(row, project_key):
-    issue = tk.create(row=row, project_key=project_key)
-    return issue
+def create_ticket(query_table, project_key):
+    logging.info('Creating Tickets...')
+
+    df = db.execute_sql_query(
+        query_sql=f"""
+    SELECT * FROM {query_table}
+    WHERE "Result Severity" != 'Information'
+    AND "Issue Evaluation" NOT IN (
+        'Issue Solved', 'Possible Issue', 'False Positive'
+        )
+    AND ("Issue Key" IS NULL
+    OR "Issue Key" ILIKE 'nan')
+    """
+    )
+
+    for index in df.index:
+        issue = tk.create(row=df.loc[index], project_key=project_key)
+
+        df.loc[index, 'Issue Key'] = str(issue.key)
+        df.loc[index, 'Issue Status'] = issue.fields.status.name
+        df.loc[index, 'Issue Created'] = issue.fields.created
+        df.loc[index, 'Issue Updated'] = str(issue.fields.updated)
+        df.loc[index, 'Issue Summary'] = issue.fields.summary
+        df.loc[index, 'Issue Priority'] = issue.fields.priority.name
+        df.loc[index, 'Issue Resolved'] = str(issue.fields.resolutiondate)
+        df.loc[index, 'Issue Due Date'] = issue.fields.duedate
+        df.loc[index, 'Issue Assignee'] = getattr(
+            issue.fields.assignee, 'displayName', None
+        )
+        df.loc[index, 'Issue Review Note'] = getattr(
+            issue.fields, 'customfield_10201', None
+        )
+        if issue.fields.status.name == 'Done':
+            df.loc[index, 'Issue Evaluation'] = getattr(
+                issue.fields, 'customfield_10200', None
+            ).value
+
+    return df
 
 
 def save_report(row, table_name):
@@ -33,7 +68,6 @@ def save_report(row, table_name):
 
 def is_information(row):
     result = row['Result Severity'] == 'Information'
-    # print("Is Information?", result)
     return result
 
 
@@ -47,44 +81,45 @@ def is_duplicated(row, table_name):
     """
     )
     result = not df.empty
-    # print("Is duplicated?", result)
     return result
 
 
 def scan_ticket():
-    try:
-        df = tk.jql_query(
-            # colunas=['Status', 'Evaluation', 'Key'],
-            project_key=st.jira_project
-        )
-        if not df.empty:
-            for index, row in df.iterrows():
-                db.update_report_evaluation(row=row)
-        else:
-            print("O DataFrame está vazio. Nenhuma ação necessária.")
+    logging.info('Scanning Tickets...')
 
+    try:
+        df = tk.jql_query(project_key=st.jira_project)
         return df
     except Exception as e:
-        print(f"Erro ao escanear tickets: {str(e)}")
+        logging.error(f'Erro ao escanear tickets: {str(e)}')
 
 
-def save_new_report(new_report, table_name='reports'):
+def save_new_report(df, table_name='reports'):
+    logging.info('Saving reports...')
 
-    for index, row in new_report.iterrows():
+    for index, row in df.iterrows():
+        if check_report(row=row, table_name=table_name):
+            db.insert_finding(table_name=table_name, row=row)
 
-        df = db.execute_sql_query(
-            query_sql=f"""
-            SELECT * FROM {table_name}
-            WHERE "SrcFileName"='{row['SrcFileName']}'
-            AND "Name"='{row['Name']}'
-            AND "Query"='{row['Query']}'
-            """
+
+def update_report(df):
+    logging.info('Updating reports...')
+    if df is None or df.empty:
+        logging.warning('No tickets to update.')
+        return
+
+    for index, row in df.iterrows():
+        db.update_report(
+            row=row,
         )
 
-        if df.empty:
-            issue_key = tk.create(row=row, project_key=st.jira_project)
 
-            # Agora, atualize a coluna 'Issue Key' no DataFrame
-            new_report.at[index, 'Issue Key'] = issue_key
-
-            db.insert_finding(table_name=table_name, row=row)
+def update_ticket(df):
+    if df is None or df.empty:
+        logging.warning('No tickets to update.')
+        return
+    logging.info('Updating tickets...')
+    for index, row in df.iterrows():
+        db.update_ticket(
+            row=row,
+        )

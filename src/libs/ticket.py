@@ -5,7 +5,6 @@ import pandas as pd
 import config.settings as st
 from jira import JIRA
 
-# Conecta ao Jira
 try:
     jira = JIRA(server=st.jira_url, basic_auth=st.jira_auth)
     logging.info('Conectado com sucesso')
@@ -47,7 +46,7 @@ def create(row, project_key):
         issuetype={'name': 'Task'},
         priority={'name': priority},
         customfield_10200={'value': 'Not Evaluated'},
-        customfield_10201='Not Evaluated'
+        customfield_10201='Not evaluated yet...',
     )
 
     logging.info(f'Criação do ticket concluída: {issue.key}')
@@ -55,13 +54,13 @@ def create(row, project_key):
 
 
 def jql_query(project_key):
-    jql_str = f"project={project_key} AND Status = 'Done'"
+    jql_str = f"""
+    project={project_key}
+    AND status != 'To Do'
+    AND updated > startOfDay(-1d)
+    """
     try:
-        issues = jira.search_issues(
-            jql_str,
-            startAt=0,
-            maxResults=1000
-        )
+        issues = jira.search_issues(jql_str, startAt=0, maxResults=1000)
 
         # Lista para armazenar os dados dos problemas
         issues_data = []
@@ -71,13 +70,23 @@ def jql_query(project_key):
             for issue in issues:
                 issue_data = {'Issue Key': issue.key}
 
-                custom_field = getattr(issue.fields, "customfield_10200", None)
-                issue_data['Evaluation'] = (
+                custom_field = getattr(issue.fields, 'customfield_10200', None)
+                issue_data['Issue Evaluation'] = (
                     custom_field.value if custom_field else None
                 )
-                issue_data['Status'] = issue.fields.status.name
-                issue_data['Created'] = issue.fields.created
-                issue_data['Updated'] = issue.fields.updated
+                issue_data['Issue Status'] = issue.fields.status.name
+                issue_data['Issue Created'] = issue.fields.created
+                issue_data['Issue Updated'] = issue.fields.updated
+                issue_data['Issue Summary'] = issue.fields.summary
+                issue_data['Issue Priority'] = issue.fields.priority.name
+                issue_data['Issue Resolved'] = issue.fields.resolutiondate
+                issue_data['Issue Due Date'] = issue.fields.duedate
+                issue_data['Issue Assignee'] = getattr(
+                    issue.fields.assignee, 'displayName', None
+                )
+                issue_data['Issue Review Note'] = getattr(
+                    issue.fields, 'customfield_10201', None
+                )
 
                 issues_data.append(issue_data)
 
@@ -87,49 +96,8 @@ def jql_query(project_key):
             return df
 
     except Exception as e:
-        print(f"Erro ao executar a consulta JQL: {str(e)}")
+        logging.info(f'Erro ao executar a consulta JQL: {str(e)}')
         return pd.DataFrame()
-
-
-def jql_query2(project_key, colunas):
-
-    # Obtenha os issues do projeto
-    issues = jira.search_issues(
-        f"project={project_key} AND Status = 'Done'",
-        startAt=0,
-        maxResults=1000
-    )
-
-    # Verifica se há pelo menos um problema
-    if issues:
-        first_issue = issues[0].raw['fields']['status']['name']
-
-        print(first_issue)
-
-        # # Obtém e imprime todas as informações do primeiro problema
-        # for field_name in first_issue.raw['fields']:
-        #     field_value = first_issue.raw['fields'][field_name]
-        #     print(f"{field_name}: {field_value}")
-
-    # Crie uma lista para armazenar os dados
-    dados = []
-
-    # Itere sobre os issues e extraia as colunas desejadas
-    for issue in issues:
-        item = {}
-        for coluna in colunas:
-            # Certifique-se de que a coluna existe no objeto fields
-            if hasattr(issue.fields, coluna):
-                item[coluna] = getattr(issue.fields, coluna)
-            else:
-                # Se a coluna não existir, adicione None ao DataFrame
-                item[coluna] = None
-        dados.append(item)
-
-    # Crie um DataFrame do pandas com os dados
-    df = pd.DataFrame(dados)
-
-    return df
 
 
 def import_jira_data(project_key, output_file_path=None):
